@@ -1,14 +1,20 @@
 import random
+import warnings
+import keras
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import RMSprop
-from tensorflow.keras.layers import Activation, Dense, LSTM
+from keras.models import Sequential
+from keras.layers import Activation, Dense, LSTM
+from syllable import Encoder
 
-#https://www.neuralnine.com/generating-texts-with-recurrent-neural-networks-in-python/
+# https://www.neuralnine.com/generating-texts-with-recurrent-neural-networks-in-python/
+from keras.optimizer_experimental.rmsprop import RMSprop
 
-filepath = tf.keras.utils.get_file('C:\\Users\\Ahmet\\PycharmProjects\\Poetry\\dataset\\PoemsText.txt', 'https://raw.githubusercontent.com/Mrjavaci/Turkish-Poems/main/PoemsText.txt')
-#C:\\Users\\Ahmet\\.keras\\datasets\\dataset\\PoemsText.txt
+warnings.filterwarnings("ignore")
+
+filepath = tf.keras.utils.get_file('C:\\Users\\User\\PycharmProjects\\Poetry2\\dataset\\PoemsText.txt',
+                                   'https://raw.githubusercontent.com/Mrjavaci/Turkish-Poems/main/PoemsText.txt')
+# C:\\Users\\Ahmet\\.keras\\datasets\\dataset\\PoemsText.txt
 text = open(filepath, 'rb').read().decode(encoding='utf-8').lower()
 
 characters = sorted(set(text))
@@ -46,7 +52,10 @@ model.add(Activation('softmax'))
 model.compile(loss='categorical_crossentropy',
               optimizer=RMSprop(lr=0.01))
 
-model.fit(x, y, batch_size=256, epochs=4)
+model.fit(x, y, batch_size=256, epochs=20)
+
+model.save("C:\\Users\\User\\PycharmProjects\\Poetry2")
+
 
 def sample(preds, temperature=1.0):
     preds = np.asarray(preds).astype('float64')
@@ -56,11 +65,25 @@ def sample(preds, temperature=1.0):
     probas = np.random.multinomial(1, preds, 1)
     return np.argmax(probas)
 
-def generate_text(length, temperature):
-    start_index = random.randint(0, len(text) - SEQ_LENGTH - 1)
-    generated = ''
-    sentence = text[start_index: start_index + SEQ_LENGTH]
-    generated += sentence
+def split(word):
+    return [char for char in word]
+
+def generate_text(startSentence, length, temperature):
+    generated = ""
+    sentence = []
+    seed = startSentence.split()
+    for i in range(SEQ_LENGTH):
+        sentence.append("a")
+
+    seedChars = []
+    for word in seed:
+        seedChars += split(word)
+
+    for i in range(len(seedChars)):
+        sentence[SEQ_LENGTH-i-1] = seedChars[len(seedChars)-i-1]
+
+    generated += startSentence
+
     for i in range(length):
         x_predictions = np.zeros((1, SEQ_LENGTH, len(characters)))
         for t, char in enumerate(sentence):
@@ -72,12 +95,15 @@ def generate_text(length, temperature):
         next_character = index_to_char[next_index]
 
         generated += next_character
-        sentence = sentence[1:] + next_character
+        sntnc = sentence[1:]
+        sntnc.append(next_character)
+        sentence = sntnc
     return generated
 
-print(generate_text(300, 0.2))
-print(generate_text(300, 0.4))
+
+print(generate_text("ah bu ben kendimi nerelere atsam", 300, 0.2))
+"""print(generate_text(300, 0.4))
 print(generate_text(300, 0.5))
 print(generate_text(300, 0.6))
 print(generate_text(300, 0.7))
-print(generate_text(300, 0.8))
+print(generate_text(300, 0.8))"""
