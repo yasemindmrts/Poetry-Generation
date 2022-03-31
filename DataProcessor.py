@@ -6,8 +6,6 @@ import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Activation, Dense, LSTM
 from syllable import Encoder
-
-# https://www.neuralnine.com/generating-texts-with-recurrent-neural-networks-in-python/
 from keras.optimizer_experimental.rmsprop import RMSprop
 
 warnings.filterwarnings("ignore")
@@ -15,7 +13,27 @@ warnings.filterwarnings("ignore")
 filepath = tf.keras.utils.get_file('C:\\Users\\User\\PycharmProjects\\Poetry2\\dataset\\PoemsText.txt',
                                    'https://raw.githubusercontent.com/Mrjavaci/Turkish-Poems/main/PoemsText.txt')
 # C:\\Users\\Ahmet\\.keras\\datasets\\dataset\\PoemsText.txt
+chars = ['\n', '\r', ' ']
+
 text = open(filepath, 'rb').read().decode(encoding='utf-8').lower()
+remove = text.translate(str.maketrans('', '', " abcçdefgğhıijklmnoöprsştuüvyz\n\r"))
+result = text.translate(str.maketrans('', '', remove))
+text = result
+
+vowels = ['a', 'e', 'i', 'o', 'ö', 'u', 'ü']
+
+def countVowels(word):
+    count = 0
+    for char in word:
+        if char in vowels:
+            count +=1
+    return count
+
+words = text.split()
+wordLengths = [len(word) for word in words]
+vowelNumberOfWords = [countVowels(word) for word in words]
+avgWordLength = round(np.mean(wordLengths))
+avgVowel = round(np.mean(vowelNumberOfWords))
 
 characters = sorted(set(text))
 
@@ -42,6 +60,7 @@ for i, satz in enumerate(sentences):
         x[i, t, char_to_index[char]] = 1
     y[i, char_to_index[next_char[i]]] = 1
 
+"""
 model = Sequential()
 model.add(LSTM(128,
                input_shape=(SEQ_LENGTH,
@@ -52,9 +71,11 @@ model.add(Activation('softmax'))
 model.compile(loss='categorical_crossentropy',
               optimizer=RMSprop(lr=0.01))
 
-model.fit(x, y, batch_size=256, epochs=20)
+model.fit(x, y, batch_size=256, epochs=30)
 
-model.save("C:\\Users\\User\\PycharmProjects\\Poetry2")
+model.save("C:\\Users\\User\\PycharmProjects\\Poetry2\\savedModel") """
+
+model = keras.models.load_model("C:\\Users\\User\\PycharmProjects\\Poetry2\\savedModel")
 
 
 def sample(preds, temperature=1.0):
@@ -65,13 +86,16 @@ def sample(preds, temperature=1.0):
     probas = np.random.multinomial(1, preds, 1)
     return np.argmax(probas)
 
+
 def split(word):
     return [char for char in word]
 
-def generate_text(startSentence, length, temperature):
+
+def generate_text(startSentence, length, temperature, syllable=0):
     generated = ""
     sentence = []
     seed = startSentence.split()
+
     for i in range(SEQ_LENGTH):
         sentence.append("a")
 
@@ -80,9 +104,11 @@ def generate_text(startSentence, length, temperature):
         seedChars += split(word)
 
     for i in range(len(seedChars)):
-        sentence[SEQ_LENGTH-i-1] = seedChars[len(seedChars)-i-1]
+        sentence[SEQ_LENGTH - i - 1] = seedChars[len(seedChars) - i - 1]
 
     generated += startSentence
+    newSentence = startSentence
+    count = 0
 
     for i in range(length):
         x_predictions = np.zeros((1, SEQ_LENGTH, len(characters)))
@@ -91,19 +117,65 @@ def generate_text(startSentence, length, temperature):
 
         predictions = model.predict(x_predictions, verbose=0)[0]
         next_index = sample(predictions,
-                                 temperature)
+                            temperature)
         next_character = index_to_char[next_index]
 
-        generated += next_character
-        sntnc = sentence[1:]
-        sntnc.append(next_character)
-        sentence = sntnc
+        if syllable != 0:
+            vowel = ['a', 'e', 'ı', 'i', 'o', 'ö', 'u', 'ü']
+            for letter in newSentence:
+                if letter in vowel:
+                    count += 1
+
+            if next_character != "\r":
+                if count == syllable:
+                    next_character = "\n"
+
+                elif count < syllable and (next_character == "\n"):
+                    next_character = " "
+
+                elif count == syllable - 1 and next_character == " " :
+                    next_character = "\n"
+
+
+                if next_character == "\n":
+                    newSentence = ""
+                else:
+                    newSentence += next_character
+
+                generated += next_character
+                sntnc = sentence[1:]
+                sntnc.append(next_character)
+                sentence = sntnc
+            else :
+                i = i-1
+
+            count = 0
+        else :
+            generated += next_character
+            sntnc = sentence[1:]
+            sntnc.append(next_character)
+            sentence = sntnc
     return generated
 
+print("Write start sentence: ")
+sentence = input()
+print("Number of line of poem: ")
+lineNumber = int(input())
+print("Syllable (yes or no):")
+ans = input()
+syllable = 0
 
-print(generate_text("ah bu ben kendimi nerelere atsam", 300, 0.2))
-"""print(generate_text(300, 0.4))
-print(generate_text(300, 0.5))
-print(generate_text(300, 0.6))
-print(generate_text(300, 0.7))
-print(generate_text(300, 0.8))"""
+if ans == "yes":
+    print("Number of syllable:")
+    syllable = int(input())
+
+lineLength = 0
+if syllable == 0:
+    lineLength = int(avgWordLength * 7)
+else :
+    lineLength = int((syllable / avgVowel * avgWordLength))
+
+start = sentence
+print("Poetry generation started. Please wait... \n\n ")
+poetry = (generate_text(start, lineLength * (lineNumber - 1), 0.7, syllable))
+print(poetry)
