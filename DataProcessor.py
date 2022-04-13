@@ -201,5 +201,7 @@ if syllable != 0:
             syllableErr = float((countVowel - syllable) / syllable)
         elif countVowel < syllable:
             syllableErr = float(countVowel / syllable)
+else:
+    syllableErr = 0
 
 print("\nAverage error:",round(float(lineErr+syllableErr)/2,2))
