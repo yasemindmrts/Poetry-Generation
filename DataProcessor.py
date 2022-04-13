@@ -184,8 +184,8 @@ poetry = (generate_text(start, lineLength * (lineNumber - 1), 0.7, syllable))
 print(Deasciifier(poetry).convert_to_turkish())
 
 errorLineNumber = poetry.count('\n')
-lineErr = 0
-syllableErr = 0
+lineErr = 1
+syllableErr = 1
 
 if lineNumber < errorLineNumber:
     lineErr = float((errorLineNumber - lineNumber)/lineNumber)
