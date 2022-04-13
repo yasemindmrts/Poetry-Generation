@@ -160,48 +160,60 @@ def generate_text(startSentence, length, temperature, syllable=0):
     return generated
 
 
-print("Write start sentence: ")
-sentence = input()
-print("Number of line of poem: ")
-lineNumber = int(input())
-print("Syllable (yes or no):")
-ans = input()
-syllable = 0
+while True:
+    print("Write start sentence: ")
+    sentence = input()
+    print("Number of line of poem: ")
+    lineNumber = int(input())
+    print("Syllable (yes or no):")
+    ans = input()
+    syllable = 0
 
-if ans == "yes":
-    print("Number of syllable:")
-    syllable = int(input())
+    if ans == "yes":
+        print("Number of syllable:")
+        syllable = int(input())
 
-lineLength = 0
-if syllable == 0:
-    lineLength = int(avgWordLength * 7)
-else:
-    lineLength = int((syllable / avgVowel * avgWordLength))
+    lineLength = 0
+    if syllable == 0:
+        lineLength = int(avgWordLength * 7)
+    else:
+        lineLength = int((syllable / avgVowel * avgWordLength))
 
-start = sentence
-print("Poetry generation started. Please wait... \n\n ")
-poetry = (generate_text(start, lineLength * (lineNumber - 1), 0.7, syllable))
-print(Deasciifier(poetry).convert_to_turkish())
+    start = sentence
+    print("Poetry generation started. Please wait... \n\n ")
+    poetry = (generate_text(start, lineLength * (lineNumber - 1), 0.7, syllable))
+    print(Deasciifier(poetry).convert_to_turkish())
 
-errorLineNumber = poetry.count('\n')
-lineErr = 1
-syllableErr = 1
+    errorLineNumber = poetry.count('\n')
+    lineErr = 1
+    syllableErr = 1
+    avgErr = 0
 
-if lineNumber < errorLineNumber:
-    lineErr = float((errorLineNumber - lineNumber)/lineNumber)
-elif errorLineNumber < lineNumber:
-    lineErr = float(errorLineNumber/lineNumber)
+    if lineNumber < errorLineNumber:
+        lineErr = float((errorLineNumber - lineNumber)/lineNumber)
+    elif errorLineNumber < lineNumber:
+        lineErr = 1.0 - float(errorLineNumber/lineNumber)
+    else :
+        lineErr = 0
 
-if syllable != 0:
-    lines = poetry.split("\n")
-    for line in lines:
-        countVowel = countVowels(line)
+    if syllable != 0:
+        lines = poetry.split("\n")
+        for line in lines:
+            countVowel = countVowels(line)
 
-        if syllable < countVowel:
-            syllableErr = float((countVowel - syllable) / syllable)
-        elif countVowel < syllable:
-            syllableErr = float(countVowel / syllable)
-else:
-    syllableErr = 0
+            if syllable < countVowel:
+                syllableErr += float((countVowel - syllable) / syllable)
+            elif countVowel < syllable:
+                syllableErr += 1.0 - float(countVowel / syllable)
 
-print("\nAverage error:",round(float(lineErr+syllableErr)/2,2))
+        syllableErr = syllableErr/len(lines)
+        avgErr = round(float(lineErr+syllableErr)/2,4)
+    else:
+        syllableErr = 0
+        avgErr = round(lineErr,4)
+
+    print("\nAverage error:", avgErr)
+    print("Continue? (yes or no) ")
+    cntue = input()
+    if cntue == "no":
+        break
