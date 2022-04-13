@@ -186,6 +186,7 @@ print(Deasciifier(poetry).convert_to_turkish())
 errorLineNumber = poetry.count('\n')
 lineErr = 1
 syllableErr = 1
+avgErr = 0
 
 if lineNumber < errorLineNumber:
     lineErr = float((errorLineNumber - lineNumber)/lineNumber)
@@ -201,7 +202,9 @@ if syllable != 0:
             syllableErr = float((countVowel - syllable) / syllable)
         elif countVowel < syllable:
             syllableErr = float(countVowel / syllable)
+    avgErr = round(float(lineErr+syllableErr)/2,2)
 else:
     syllableErr = 0
+    avgErr = lineErr
 
-print("\nAverage error:",round(float(lineErr+syllableErr)/2,2))
+print("\nAverage error:",avgErr)
