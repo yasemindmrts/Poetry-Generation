@@ -7,6 +7,7 @@ from keras.models import Sequential
 from keras.layers import Activation, Dense, LSTM
 from syllable import Encoder
 from keras.optimizer_experimental.rmsprop import RMSprop
+from turkish.deasciifier import Deasciifier
 
 warnings.filterwarnings("ignore")
 
@@ -22,12 +23,14 @@ text = result
 
 vowels = ['a', 'e', 'i', 'o', 'ö', 'u', 'ü']
 
+
 def countVowels(word):
     count = 0
     for char in word:
         if char in vowels:
-            count +=1
+            count += 1
     return count
+
 
 words = text.split()
 wordLengths = [len(word) for word in words]
@@ -133,9 +136,8 @@ def generate_text(startSentence, length, temperature, syllable=0):
                 elif count < syllable and (next_character == "\n"):
                     next_character = " "
 
-                elif count == syllable - 1 and next_character == " " :
+                elif count == syllable - 1 and next_character == " ":
                     next_character = "\n"
-
 
                 if next_character == "\n":
                     newSentence = ""
@@ -146,16 +148,17 @@ def generate_text(startSentence, length, temperature, syllable=0):
                 sntnc = sentence[1:]
                 sntnc.append(next_character)
                 sentence = sntnc
-            else :
-                i = i-1
+            else:
+                i = i - 1
 
             count = 0
-        else :
+        else:
             generated += next_character
             sntnc = sentence[1:]
             sntnc.append(next_character)
             sentence = sntnc
     return generated
+
 
 print("Write start sentence: ")
 sentence = input()
@@ -172,10 +175,31 @@ if ans == "yes":
 lineLength = 0
 if syllable == 0:
     lineLength = int(avgWordLength * 7)
-else :
+else:
     lineLength = int((syllable / avgVowel * avgWordLength))
 
 start = sentence
 print("Poetry generation started. Please wait... \n\n ")
 poetry = (generate_text(start, lineLength * (lineNumber - 1), 0.7, syllable))
-print(poetry)
+print(Deasciifier(poetry).convert_to_turkish())
+
+errorLineNumber = poetry.count('\n')
+lineErr = 0
+syllableErr = 0
+
+if lineNumber < errorLineNumber:
+    lineErr = float((errorLineNumber - lineNumber)/lineNumber)
+elif errorLineNumber < lineNumber:
+    lineErr = float(errorLineNumber/lineNumber)
+
+if syllable != 0:
+    lines = poetry.split("\n")
+    for line in lines:
+        countVowel = countVowels(line)
+
+        if syllable < countVowel:
+            syllableErr = float((countVowel - syllable) / syllable)
+        elif countVowel < syllable:
+            syllableErr = float(countVowel / syllable)
+
+print("\nAverage error:",round(float(lineErr+syllableErr)/2,2))
